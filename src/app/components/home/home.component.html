@@ -1,0 +1,24 @@
+<div id="home-wrapper">
+  <div id="games-list-wrapper">
+    <button mat-button (click)="getGameTemplateRef(GameType.TETRIS)">Tetris</button>
+    <button mat-button (click)="getGameTemplateRef(GameType.GAMEOFLIFE)">Game Of Life</button>
+    <button mat-button (click)="getGameTemplateRef(GameType.GALAGA)">Galaga</button>
+    <button mat-button (click)="getGameTemplateRef(GameType.SIMONSAYS)">Simon Says</button>
+  </div>
+  <div id="game-wrapper">
+    <ng-container *ngTemplateOutlet="selectedGame"></ng-container>
+  </div>
+</div>
+
+<ng-template #tetris>
+  <app-tetris></app-tetris>
+</ng-template>
+<ng-template #gameOfLife>
+  <app-game-of-life></app-game-of-life>
+</ng-template>
+<ng-template #galaga>
+  <app-galaga></app-galaga>
+</ng-template>
+<ng-template #simonSays>
+  <app-simon-says></app-simon-says>
+</ng-template>

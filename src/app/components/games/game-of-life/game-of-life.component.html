@@ -1,8 +1,13 @@
-<p>game-of-life works!</p>
+<p>Game Of Life</p>
 <canvas
   #canvas
   id="canvas"
   [height]="canvasHeight"
   [width]="canvasWidth"
-  style="background-color: black">
+  style="background-color: whitesmoke; border: 1px solid black">
 </canvas>
+<div id="button-container">
+  <button mat-button (click)="toggleRunGame()">Toggle Game</button>
+  <button mat-button (click)="advanceOneFrame()">Advance One Frame</button>
+  <button mat-button (click)="resetGame()">Reset</button>
+</div>

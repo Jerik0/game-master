@@ -1,5 +1,6 @@
 import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import {MatButton} from '@angular/material/button';
+import {BitArray} from '../../../helpers/board-helpers';
 
 @Component({
   selector: 'app-game-of-life',
@@ -10,124 +11,111 @@ import {MatButton} from '@angular/material/button';
   styleUrl: './game-of-life.component.css'
 })
 export class GameOfLifeComponent implements OnInit, AfterViewInit {
-  @ViewChild('canvas', {static: true})
+  @ViewChild('canvas', {static: false})
   public canvas!: ElementRef<HTMLCanvasElement>;
   public context: CanvasRenderingContext2D;
 
-  cellData = [];
-  rows = 100;
-  columns = 100;
-  canvasWidth = 600;
-  canvasHeight = 600;
-  cellWidth;
+  boardWidth = 600;
+  boardHeight = 600;
+  resolution = 4;
   runGame = false;
-  updateInterval;
+  rows = this.boardHeight / this.resolution;
+  columns = this.boardWidth / this.resolution;
+  gameBoard: BitArray[];
 
   ngOnInit() {
   }
 
   ngAfterViewInit() {
     this.context = this.canvas.nativeElement.getContext('2d');
-    this.initializeCellData();
-    console.log(this.getNeighbors(2, 2));
+    this.startGame();
   }
 
-  initializeCellData = (): void => {
-    for (let i = 0; i < this.rows; i++) {
-      this.cellData[i] = [];
-      for (let j = 0; j < this.columns; j++) {
-        let randomNum = Math.floor(Math.random() * 50);
-        this.cellData[i][j] = randomNum > 3 ? 0 : 1;
-      }
-    }
+  startGame(): void {
+    console.log('Starting Game');
 
-    this.cellWidth = this.canvasWidth / this.cellData[0].length
-    this.drawMap();
+
+    const board = new Array(this.rows)
+      .fill(0)
+      .map(() => new Array(this.columns).fill(0).map(() => (Math.random() > 0.5 ? 1 : 0)));
+
+    this.gameBoard = board;
+    this.render(this.gameBoard);
+    this.animate();
   }
 
-  drawMap() {
-    for (let i = 0; i < this.rows; i++) {
-      for (let j = 0; j < this.columns; j++) {
-        this.context.fillStyle = ["#83c5be", "#edf6f9", "cyan", "yellow"][this.cellData[i][j]]
-        this.context.fillRect(j * this.cellWidth, i * this.cellWidth, this.cellWidth, this.cellWidth)
-      }
-    }
+  stopGame(): void {
+    const rows = this.boardHeight / this.resolution;
+    const columns = this.boardWidth / this.resolution;
+    this.gameBoard = new Array(rows)
+      .fill(0).map(() => new Array(columns).fill(0));
+    this.render(this.gameBoard);
   }
 
-  getNeighbors(x: number, y: number): number[] {
-    let neighbors = [];
-    let checkingCell = this.cellData[x][y];
-
-    if (checkingCell != undefined) {
-      for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
-          if (i === 0 && j === 0) continue;
-          if (this.isInBounds(x + i, y + j)) {
-            neighbors.push(this.cellData[x + i][y + j]);
-          }
-        }
-      }
-    }
-    return neighbors;
+  animate() {
+    setTimeout(() => {
+      requestAnimationFrame(() => this.animate());
+    }, 40)
+    this.render(this.gameBoard);
+    this.createNextGeneration(this.gameBoard);
   }
 
-  isInBounds(row: number, col: number): boolean {
-    return row >= 0 && row < this.rows && col >= 0 && col < this.columns;
-  }
+  render(board: BitArray[]) {
+    const c = this.context;
+    const res = this.resolution;
+    board.forEach((row, rowIndex) => {
+      row.forEach((cell, colIndex) => {
+        c.beginPath();
+        c.rect(colIndex * res, rowIndex * res, res, res);
+        c.fillStyle = cell ? '#f6fff8' : '#011627';
 
-  updateGame(): void {
-    for (let i = 0; i < this.rows; i++) {
-      for (let j = 0; j < this.columns; j++) {
-        let neighborCount = this.getNeighbors(i, j).reduce((a, b) => a + b, 0);
-        // console.log('========== New Cell ===============')
-        // console.log(`i:j - ${i}:${j}`);
-        // console.log(`cell value: ${this.cellData[i][j]}`);
-        // console.log(`this.getNeighbors(i, j): ${this.getNeighbors(i, j)}`);
-        // console.log(`neighborCount: ${neighborCount}`);
-
-        if (this.cellData[i][j] === 1) {
-          // Survival: A live cell with two or three live neighbors survives to the next generation
-          if (neighborCount === 2 || neighborCount === 3) continue;
-
-          // Death by isolation: A live cell dies if it has one or fewer live neighbors
-          // Death by overcrowding: A live cell dies if it has four or more live neighbors
-          if (neighborCount <= 1 || neighborCount >= 4) this.cellData[i][j] = 0;
+        if (cell && this.neighborsOf(rowIndex, colIndex) === 2) {
+          c.fillStyle = 'cyan';
         }
 
-        // Birth: A dead cell becomes alive if it has exactly three live neighbors
-        if (this.cellData[i][j] === 0 && neighborCount === 3) {
-          // console.log('this cell is born');
-          this.cellData[i][j] = 1;
+        if (cell && this.neighborsOf(rowIndex, colIndex) === 3) {
+          c.fillStyle = '#fa9500';
         }
-      }
-
-      this.drawMap();
-    }
+        c.fill();
+      })
+    })
   }
 
-  toggleRunGame(): void {
-    this.runGame = !this.runGame;
-    console.log(this.runGame);
+  createNextGeneration(board: BitArray[]): void {
+    // copy the current state of our game board (array)
+    const nextGeneration = this.gameBoard.map((innerArr) => [...innerArr]);
 
-    if (this.runGame) {
-      this.updateInterval = setInterval(() => {
-        this.updateGame();
-      }, 100);
-    } else {
-      clearInterval(this.updateInterval);
-      // this.initializeCellData();
-    }
+    // decide if living or dead based on rules for each cell
+    board.forEach((row, rowIndex) => {
+      row.forEach((cell, colIndex) => {
+        const becomeLivingCellInAnyCase = this.neighborsOf(rowIndex, colIndex) === 3;
+        const keepAlive = cell && this.neighborsOf(rowIndex, colIndex) === 2;
+        const newCellValue = becomeLivingCellInAnyCase || keepAlive ? 1 : 0;
+
+        nextGeneration[rowIndex][colIndex] = newCellValue;
+      });
+    });
+    // update game board with next generation
+    this.gameBoard = nextGeneration;
   }
 
-  resetGame(): void {
-    this.runGame = false;
-    clearInterval(this.updateInterval);
-    this.initializeCellData();
-  }
+  neighborsOf(rowIndex: number, colIndex: number) {
+    const board = this.gameBoard;
+    const rowAbove = board[rowIndex - 1] || [];
+    const rowBelow = board[rowIndex + 1] || [];
+    const fieldBefore = board[rowIndex][colIndex - 1];
+    const fieldAfter = board[rowIndex][colIndex + 1];
 
-  advanceOneFrame(): void {
-    this.runGame = false;
-    clearInterval(this.updateInterval);
-    this.updateGame();
+    return [
+      rowAbove[colIndex - 1],
+      rowAbove[colIndex],
+      rowAbove[colIndex + 1],
+      rowBelow[colIndex - 1],
+      rowBelow[colIndex],
+      rowBelow[colIndex + 1],
+      fieldBefore,
+      fieldAfter
+      // @ts-ignore
+    ].reduce((a, b) => (b != null ? a + b : a), 0);
   }
 }

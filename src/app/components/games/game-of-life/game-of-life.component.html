@@ -2,12 +2,11 @@
 <canvas
   #canvas
   id="canvas"
-  [height]="canvasHeight"
-  [width]="canvasWidth"
-  style="background-color: whitesmoke; border: 1px solid black">
+  [height]="boardHeight"
+  [width]="boardWidth"
+  style="background-color: whitesmoke; border: 2px solid cyan; border-radius: 5px">
 </canvas>
 <div id="button-container">
-  <button mat-button (click)="toggleRunGame()">Toggle Game</button>
-  <button mat-button (click)="advanceOneFrame()">Advance One Frame</button>
-  <button mat-button (click)="resetGame()">Reset</button>
+  <button mat-button (click)="startGame()">Reset</button>
+  <button mat-button (click)="stopGame()">Stop</button>
 </div>
